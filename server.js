@@ -240,21 +240,21 @@ io.on("connection", (socket) => {
           room.currentTurn = opponent;
 
           // Add the temporary score to the score
-          if (team === "A") {
-            room.scoreA += room.tempScoreA;
-            room.tempScoreA = 0;
-          } else {
-            room.scoreB += room.tempScoreB;
-            room.tempScoreB = 0;
-          }
+          // if (team === "A") {
+          //   room.scoreA += room.tempScoreA;
+          //   room.tempScoreA = 0;
+          // } else {
+          //   room.scoreB += room.tempScoreB;
+          //   room.tempScoreB = 0;
+          // }
 
-          // Check if there are any remaining questions
-          if (room.questions.length > 0) {
-            room.activeQuestion = room.questions.shift();
-          } else {
-            // If there are no more questions, emit a "gameOver" event
-            io.to(roomId).emit("gameOver", { room });
-          }
+          // // Check if there are any remaining questions
+          // if (room.questions.length > 0) {
+          //   room.activeQuestion = room.questions.shift();
+          // } else {
+          //   // If there are no more questions, emit a "gameOver" event
+          //   io.to(roomId).emit("gameOver", { room });
+          // }
 
           room.currentTurnIndex = Math.floor(
             Math.random() * room[`team${opponent}`].length
