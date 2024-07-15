@@ -41,7 +41,7 @@ const questions = [
     },
 ];
 
-openAI("sarapan pagi", 1).then(console.log);
+// openAI("sarapan pagi", 1).then(console.log);
 
 io.on("connection", (socket) => {
     console.log("a user connected");
