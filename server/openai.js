@@ -22,11 +22,7 @@ class OpenAIClass {
                     {
                         role: "system",
                         content: `
-                            Buat ${JSON.stringify(
-                                totalQuestion
-                            )} pertanyaan seperti family 100 dengan kategori ${JSON.stringify(
-                            category
-                        )}, dan buat menjadi format sebagai berikut:
+                            Buat ${totalQuestion} pertanyaan seperti family 100 dengan kategori ${category}, dan buat menjadi format sebagai berikut:
                                 [{id: serial,question: "",answers: [{answer: "",score: point,revealed: false}}]}]
                             `,
                     },
@@ -42,12 +38,37 @@ class OpenAIClass {
 
     static async compareAnswer(answerByUser, realAnswer) {
         try {
+            const completion = await this.openai().chat.completions.create({
+                messages: [
+                    {
+                        role: "system",
+                        content: `
+                            Compare answer:
+                            Answer: ${answerByUser}
+                            Real Answer: ${realAnswer}
+
+                            Show in percentage with json format (without explanation):
+                            If percentage is above 70% then it's correct, if below 70% then it's incorrect.
+                            {
+                                status: boolean,
+                            }
+                            `,
+                    },
+                ],
+                model: "gpt-3.5-turbo",
+            });
+
+            // Compare answer Precision
+            const percentage = completion.choices[0].message.content;
+
+            return JSON.parse(percentage);
         } catch (error) {
             console.error(error);
         }
     }
 }
 
-OpenAIClass.createQuestion("film horor", 5).then(console.log);
+// OpenAIClass.createQuestion("film horor", 5).then(console.log);
+OpenAIClass.compareAnswer("Writing Novel", "Writing Book").then(console.log);
 
 module.exports = OpenAIClass;
