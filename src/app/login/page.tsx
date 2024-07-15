@@ -1,6 +1,5 @@
 "use client";
 import PlayIcon from "../../../public/playLogos.png";
-import Texture from "../../../public/textura.png";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
