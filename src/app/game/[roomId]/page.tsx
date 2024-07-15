@@ -162,11 +162,17 @@ export default function Game({
       </div>
       {((room.currentTurn === "A" &&
         room.teamA[room.currentTurnIndex] ===
-          localStorage.getItem("username")) ||
+          localStorage.getItem("username") &&
+        !room.answeredTeams.A) ||
         (room.currentTurn === "B" &&
           room.teamB[room.currentTurnIndex] ===
-            localStorage.getItem("username")) ||
-        room.currentTurn === null) && (
+            localStorage.getItem("username") &&
+          !room.answeredTeams.B) ||
+        (room.currentTurn === null &&
+          ((room.teamA.includes(localStorage.getItem("username")) &&
+            !room.answeredTeams.A) ||
+            (room.teamB.includes(localStorage.getItem("username")) &&
+              !room.answeredTeams.B)))) && (
         <div>
           <input
             type="text"
