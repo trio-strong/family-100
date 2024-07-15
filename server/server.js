@@ -187,6 +187,8 @@ io.on("connection", (socket) => {
             }
 
             if (room.questions.length > 0) {
+              room.livesA = 3;
+              room.livesB = 3;
               room.tempScoreA = 0;
               room.tempScoreB = 0;
               room.currentTurn = null;
