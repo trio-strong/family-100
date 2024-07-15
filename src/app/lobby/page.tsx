@@ -20,7 +20,6 @@ export default function Lobby() {
   const [username, setUsername] = useState("");
   const [inRoom, setInRoom] = useState(false);
   const router = useRouter();
-
   useEffect(() => {
     socket = io("http://localhost:3001");
 
@@ -62,7 +61,10 @@ export default function Lobby() {
   if (inRoom) {
     return <div>Joining room...</div>;
   }
-
+  const logoutHandler = () => {
+    localStorage.removeItem("username");
+    router.push("/");
+  }
   return (
     <div className="flex flex-col max-h-screen w-full " style={{
       backgroundImage: `url('/textura.png')`,
@@ -97,7 +99,7 @@ export default function Lobby() {
                   onChange={(e) => setCategory(e.target.value)}
                   className="max-w-80 w-full text-center p-2 border-2 border-[#868d96] rounded-xl font-extrabold tracking-widest focus:outline-none focus:border-[#001b4d]"
                 />
-                <div className="flex max-w-52 w-full  p-2  bg-[#24a2d3] rounded-3xl  outline outline-4 hover:bg-[#ffbf00]">
+                <div className="flex max-w-52 w-full p-2 bg-[#24a2d3] rounded-3xl outline outline-4 hover:bg-[#ffbf00]">
                   <button
                     onClick={() => {
                       createRoom();
@@ -114,7 +116,7 @@ export default function Lobby() {
         </div>
       )}
       <div className="flex w-full max-h-14 h-full justify-end items-center  p-4">
-        <button className="flex font-extrabold tracking-wider gap-3 text-2xl ustify-center items-center text-white">Exit <Image src={ExitIcon} alt="User Icon" className="flex w-5" /></button>
+        <button className="flex font-extrabold tracking-wider gap-3 text-2xl ustify-center items-center text-white" onClick={logoutHandler}>Exit <Image src={ExitIcon} alt="User Icon" className="flex w-5" /></button>
       </div>
       <div className="flex flex-col max-h-screen w-full px-20 pb-20 overflow-y-auto">
         <div className="flex h-96 justify-start items-center rounded-2xl px-5 gap-10 mb-3 bg-white shadow-2xl shadow-black">
@@ -147,10 +149,10 @@ export default function Lobby() {
                 <div className="flex grow p-2 text-[#001b4d] ">
                   <div className="flex-col justify-start px-2 min-w-80 h-full ">
                     <div className="flex justify-start items-center w-full text-2xl italic font-extrabold ">{room.name}</div>
-                    <div className="flex justify-start items-center w-full text-xs italic font-bold tracking-widest">Players: 2/10</div>
+                    <div className="flex justify-start items-center w-full text-xs italic font-bold tracking-widest">Players: {room.users.length}/10</div>
                   </div>
                   <div className="flex justify-center items-center grow h-full">
-                    <div className="flex justify-center items-center w-full h-full text-lg italic font-black tracking-widest"> Category</div>
+                    <div className="flex justify-center items-center w-full h-full text-lg italic font-black tracking-widest"> {room.questions[0].category}</div>
                   </div>
                 </div>
                 <div className="flex min-w-16 h-full justify-center items-center rounded-r-[10px] px-5 gap-3 bg-[#001b4d]">
