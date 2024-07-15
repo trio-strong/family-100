@@ -69,6 +69,6 @@ class OpenAIClass {
 }
 
 // OpenAIClass.createQuestion("film horor", 5).then(console.log);
-OpenAIClass.compareAnswer("Writing Novel", "Writing Book").then(console.log);
+// OpenAIClass.compareAnswer("Writing Novel", "Writing Book").then(console.log);
 
 module.exports = OpenAIClass;
