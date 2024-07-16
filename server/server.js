@@ -233,6 +233,32 @@ io.on("connection", (socket) => {
           callback({ correct: false });
         }
 
+        if (room.livesA === 0 || room.livesB === 0) {
+          // Add the temporary score to the score
+          if (team === "B") {
+            room.scoreA += room.tempScoreA;
+            room.tempScoreA = 0;
+          } else {
+            room.scoreB += room.tempScoreB;
+            room.tempScoreB = 0;
+          }
+          // Check if there are any remaining questions
+          if (room.questions.length > 0) {
+            room.livesA = 3;
+            room.livesB = 3;
+            room.tempScoreA = 0;
+            room.tempScoreB = 0;
+            room.currentTurn = null;
+            room.activeQuestion = room.questions.shift();
+            io.to(roomId).emit("roomData", { room });
+          } else {
+            // If there are no more questions, emit a "gameOver" event
+            io.to(roomId).emit("gameOver", { room });
+          }
+
+          return;
+        }
+
         if (team === "A") {
           room.livesA--;
         } else if (team === "B") {
@@ -242,23 +268,6 @@ io.on("connection", (socket) => {
         if (room.livesA === 0 || room.livesB === 0) {
           const opponent = team === "A" ? "B" : "A";
           room.currentTurn = opponent;
-
-          // Add the temporary score to the score
-          // if (team === "A") {
-          //   room.scoreA += room.tempScoreA;
-          //   room.tempScoreA = 0;
-          // } else {
-          //   room.scoreB += room.tempScoreB;
-          //   room.tempScoreB = 0;
-          // }
-
-          // // Check if there are any remaining questions
-          // if (room.questions.length > 0) {
-          //   room.activeQuestion = room.questions.shift();
-          // } else {
-          //   // If there are no more questions, emit a "gameOver" event
-          //   io.to(roomId).emit("gameOver", { room });
-          // }
 
           room.currentTurnIndex = Math.floor(
             Math.random() * room[`team${opponent}`].length
