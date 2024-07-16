@@ -36,23 +36,37 @@ class OpenAIClass {
         }
     }
 
+    // 1 hit, return array
     static async compareAnswer(answerByUser, realAnswer) {
         try {
             const completion = await this.openai().chat.completions.create({
                 messages: [
                     {
                         role: "system",
-                        content: `
-                            Compare answer:
-                            Answer: ${answerByUser}
-                            Real Answer: ${realAnswer}
+                        // content: `
+                        //     Compare answer:
+                        //     Answer: ${answerByUser}
+                        //     Real Answers: ${realAnswer}
 
-                            Show in percentage with json format (without explanation):
-                            If percentage is above 70% then it's correct, if below 70% then it's incorrect.
+                        //     Find the closest answer from the real answers and show in percentage with json format. (without explanation):
+                        //     If percentage is above 70% then it's correct, if below 70% then it's incorrect.
+                        //     {
+                        //         status: boolean,
+                        //         matched: <the closest answer>,
+                        //         percentage: <the percentage>
+                        //     }
+                        //     `,
+                        content: `
+                            Saya memiliki jawaban: ${answerByUser}. Di bawah ini adalah kumpulan data yang terdiri dari kata atau frase:
+                            ${realAnswer}
+
+                            Tolong evaluasi kata atau frase mana yang paling sesuai dengan ${answerByUser} berdasarkan kemiripannya. Keluarkan hasilnya dalam format JSON sebagai berikut:
                             {
-                                status: boolean,
+                            "status": boolean, # Apakah ada kemiripan atau tidak
+                            "matched": "<kata atau frase terdekat>", # Kata atau frase yang paling sesuai
+                            "percentage": <nilai kemiripan dalam persentase> # Persentase kemiripan
                             }
-                            `,
+                        `,
                     },
                 ],
                 model: "gpt-3.5-turbo",
@@ -69,6 +83,6 @@ class OpenAIClass {
 }
 
 // OpenAIClass.createQuestion("film horor", 5).then(console.log);
-// OpenAIClass.compareAnswer("Writing Novel", "Writing Book").then(console.log);
+// OpenAIClass.compareAnswer(answerByUser, realAnswer).then(console.log);
 
 module.exports = OpenAIClass;
