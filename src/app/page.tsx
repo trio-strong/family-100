@@ -17,7 +17,7 @@ export default function Home() {
   }, []);
 
   let socket: any;
-  socket = io("http://localhost:3001");
+  socket = io(process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:3001");
 
   const handleJoin = () => {
     if (userName !== "" && roomId !== "") {
