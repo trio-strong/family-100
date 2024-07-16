@@ -31,7 +31,7 @@ export default function Game({
   const roomId = params.roomId;
 
   useEffect(() => {
-    socket = io("http://localhost:3001");
+    socket = io(process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:3001");
 
     socket.emit("joinRoom", {
       roomId,

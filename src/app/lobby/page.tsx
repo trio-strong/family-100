@@ -21,7 +21,7 @@ export default function Lobby() {
   const [inRoom, setInRoom] = useState(false);
   const router = useRouter();
   useEffect(() => {
-    socket = io("http://localhost:3001");
+    socket = io(process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:3001");
 
     socket.on("rooms", (rooms: any) => {
       setRooms(rooms);
