@@ -82,11 +82,8 @@ export default function Game({
       }
     );
 
-    socket.on("gameOver", (data: any) => {
-      alert(
-        `Game Over! Final Score - Team A: ${data.room.scoreA}, Team B: ${data.room.scoreB}`
-      );
-      router.push("/lobby");
+    socket.on("noMoreQuestions", (data: any) => {
+      router.push(`/awarding/${roomId}`);
     });
 
     return () => {
@@ -234,7 +231,7 @@ export default function Game({
             {showResult && (
               <p>{userAnswer.correct ? "Correct!" : "Incorrect!"}</p>
             )}
-            <p>Time remaining: {countdown}</p>
+            <p>Survey membuktikan: {countdown}</p>
           </div>
         )}
     </div>

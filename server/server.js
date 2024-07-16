@@ -103,6 +103,11 @@ io.on("connection", (socket) => {
       if (callback) callback();
     }
   });
+  socket.on("deleteRoom", ({ roomId }) => {
+    rooms = rooms.filter((r) => r.id !== roomId);
+    // io.to(roomId).emit("noMoreQuestions", { room });
+    io.emit("rooms", rooms);
+  });
 
   socket.on("chooseTeam", ({ roomId, team, username }) => {
     const room = rooms.find((r) => r.id === roomId);
@@ -175,7 +180,8 @@ io.on("connection", (socket) => {
               io.to(roomId).emit("roomData", { room });
             } else {
               // If there are no more questions, emit a "gameOver" event
-              io.to(roomId).emit("gameOver", { room });
+
+              io.to(roomId).emit("noMoreQuestions", { room });
             }
 
             // io.to(roomId).emit("roomData", { room });
@@ -208,7 +214,8 @@ io.on("connection", (socket) => {
                 io.to(roomId).emit("roomData", { room });
               } else {
                 // If there are no more questions, emit a "gameOver" event
-                io.to(roomId).emit("gameOver", { room });
+
+                io.to(roomId).emit("noMoreQuestions", { room });
               }
 
               // Reset the lives of the team that lost all their lives
@@ -266,7 +273,8 @@ io.on("connection", (socket) => {
             io.to(roomId).emit("roomData", { room });
           } else {
             // If there are no more questions, emit a "gameOver" event
-            io.to(roomId).emit("gameOver", { room });
+
+            io.to(roomId).emit("noMoreQuestions", { room });
           }
 
           return;
