@@ -57,6 +57,10 @@ export default function Game({
   }, [roomId]);
 
   const handleAnswer = () => {
+    if (!socket) {
+      alert("Connection is not established yet. Please try again.");
+      return;
+    }
     const username = localStorage.getItem("username");
     const team = room.teamA.includes(username) ? "A" : "B";
 
@@ -82,11 +86,11 @@ export default function Game({
             alert(`Correct! You scored ${response.score} points.`);
           } else {
             alert("Incorrect answer!");
-            if (team === "A") {
-              setLivesA((prevLives) => prevLives - 1);
-            } else {
-              setLivesB((prevLives) => prevLives - 1);
-            }
+            // if (team === "A") {
+            //   setLivesA((prevLives) => prevLives - 1);
+            // } else {
+            //   setLivesB((prevLives) => prevLives - 1);
+            // }
           }
         }
       );
@@ -111,8 +115,8 @@ export default function Game({
       </div>
       <div>
         <h3>Lives</h3>
-        <p>Team A: {livesA}</p>
-        <p>Team B: {livesB}</p>
+        <p>Team A: {room.livesA}</p>
+        <p>Team B: {room.livesB}</p>
       </div>
       <div>
         <h3>Current Question: {room.activeQuestion.question}</h3>
@@ -162,11 +166,17 @@ export default function Game({
       </div>
       {((room.currentTurn === "A" &&
         room.teamA[room.currentTurnIndex] ===
-          localStorage.getItem("username")) ||
+          localStorage.getItem("username") &&
+        !room.answeredTeams.A) ||
         (room.currentTurn === "B" &&
           room.teamB[room.currentTurnIndex] ===
-            localStorage.getItem("username")) ||
-        room.currentTurn === null) && (
+            localStorage.getItem("username") &&
+          !room.answeredTeams.B) ||
+        (room.currentTurn === null &&
+          ((room.teamA.includes(localStorage.getItem("username")) &&
+            !room.answeredTeams.A) ||
+            (room.teamB.includes(localStorage.getItem("username")) &&
+              !room.answeredTeams.B)))) && (
         <div>
           <input
             type="text"
