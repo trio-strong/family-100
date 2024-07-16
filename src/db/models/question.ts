@@ -19,10 +19,6 @@ export class Question {
         await collection.insertOne(question);
     }
 
-    static async delete(question: QuestionType) {
-        const collection = database.collection("questions");
-        await collection.deleteOne({
-            _id: question._id,
-        });
-    }
+    // Read by category
+    // No revealed property
 }
