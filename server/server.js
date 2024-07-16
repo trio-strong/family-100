@@ -148,6 +148,8 @@ io.on("connection", (socket) => {
             a.answer.toLowerCase() === comparisonResult.matched.toLowerCase()
         );
 
+        io.to(roomId).emit("userAnswer", { username, answer, correct: true });
+
         if (answerObj && !answerObj.revealed) {
           answerObj.revealed = true;
           if (team === "A") {
@@ -241,6 +243,8 @@ io.on("connection", (socket) => {
         if (typeof callback === "function") {
           callback({ correct: false });
         }
+
+        io.to(roomId).emit("userAnswer", { username, answer, correct: false });
 
         if (room.livesA === 0 || room.livesB === 0) {
           // Add the temporary score to the score

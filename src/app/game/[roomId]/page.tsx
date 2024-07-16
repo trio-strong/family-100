@@ -15,6 +15,18 @@ export default function Game({
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [livesA, setLivesA] = useState(3);
   const [livesB, setLivesB] = useState(3);
+
+  // Add a new state variable for the user's answer and whether it's correct or not
+  const [userAnswer, setUserAnswer] = useState<{
+    username: string;
+    answer: string;
+    correct: boolean;
+  } | null>(null);
+
+  // Add a new state variable for the countdown timer
+  const [countdown, setCountdown] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+
   const router = useRouter();
   const roomId = params.roomId;
 
@@ -43,6 +55,32 @@ export default function Game({
       setLivesA(3);
       setLivesB(3);
     });
+
+    socket.on(
+      "userAnswer",
+      (data: { username: string; answer: string; correct: boolean }) => {
+        // Update the state with the user's answer and whether it's correct or not
+        setUserAnswer(data);
+
+        // Hide the result when a new answer is received
+        setShowResult(false);
+
+        // Start the countdown timer
+        setCountdown(5);
+        const timer = setInterval(() => {
+          setCountdown((prevCountdown) => {
+            if (prevCountdown <= 1) {
+              // Clear the countdown timer when the countdown reaches 0
+              clearInterval(timer);
+
+              // Show the result when the countdown is over
+              setShowResult(true);
+            }
+            return prevCountdown - 1;
+          });
+        }, 1000);
+      }
+    );
 
     socket.on("gameOver", (data: any) => {
       alert(
@@ -187,6 +225,18 @@ export default function Game({
           <button onClick={handleAnswer}>Submit Answer</button>
         </div>
       )}
+      {userAnswer &&
+        userAnswer.username !== localStorage.getItem("username") && (
+          <div>
+            <p>
+              {userAnswer.username} answered: {userAnswer.answer}
+            </p>
+            {showResult && (
+              <p>{userAnswer.correct ? "Correct!" : "Incorrect!"}</p>
+            )}
+            <p>Time remaining: {countdown}</p>
+          </div>
+        )}
     </div>
   );
 }
