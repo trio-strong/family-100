@@ -28,6 +28,11 @@ export class Room {
         const collection = database.collection("rooms");
         await collection.insertOne(room);
     }
+
+    // Read Room by Id
+    // Update Room by Id
+    // Delete Room by Id
+
     // static async delete(room: RoomType) {
     //     const collection = database.collection("rooms");
     //     await collection.deleteOne({
