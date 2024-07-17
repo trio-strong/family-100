@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import io from "socket.io-client";
-
+import Life from "../../../../public/heart.png";
+import Image from "next/image";
 let socket: any;
 
 export default function Game({
@@ -99,84 +100,120 @@ export default function Game({
   if (!room) return <div>Loading...</div>;
 
   return (
-    <div>
-      <h1>Game in Room: {room.name}</h1>
-      <h2>
-        Team A: {room.scoreA} - Team B: {room.scoreB}
-      </h2>
-      <div>
-        <h3>Temporary Score</h3>
-        <p>Team A: {room.tempScoreA}</p>
-        <p>Team B: {room.tempScoreB}</p>
-      </div>
-      <div>
-        <h3>Lives</h3>
-        <p>Team A: {livesA}</p>
-        <p>Team B: {livesB}</p>
-      </div>
-      <div>
-        <h3>Current Question: {room.activeQuestion.question}</h3>
-        <ul>
-          {room.activeQuestion.answers.map(
-            (
-              a: { answer: string; score: number; revealed: boolean },
-              index: number
-            ) => (
-              <li key={index}>
-                {a.revealed ? a.answer + " - " + a.score : "-"}
-              </li>
-            )
-          )}
-        </ul>
-      </div>
-      <div>
-        <h3>Players</h3>
-        <div>
-          <h4>Team A</h4>
-          <ul>
-            {room.teamA.map((user: string, index: number) => (
-              <li key={user}>
-                {user}{" "}
-                {room.currentTurn === "A" &&
-                  room.currentTurnIndex === index && (
-                    <span>(Current Turn)</span>
+    <div className="flex flex-col max-w-screen w-full max-h-screen h-screen " style={{
+      backgroundImage: `url('/textura.png')`,
+      backgroundRepeat: 'repeat',
+      backgroundColor: `#0a5efb`
+    }}>
+      <div className="flex-col w-full h-full">
+        <div className="flex justify-center items-center max-h-[20%] h-full">
+          <div className="flex justify-center items-center w-1/6 h-full pt-3">
+            <div className="flex justify-center items-center w-36 h-36 text-4xl font-extrabold tracking-wider rounded-xl outline outline-4 outline-white bg-[#ffbf00] text-[#001b4d]">{room.scoreA}</div>
+          </div>
+          <div className="flex-col justify-center items-center w-4/6 h-full">
+            <div className="flex justify-center items-center w-full h-1/2">
+              <div className="flex-col max-w-[40%] w-full h-full">
+                <div className="flex justify-start items-end w-full h-4/6 text-4xl font-extrabold tracking-wider text-white">Team A</div>
+                <div className="flex justify-start items-center w-full h-2/6 font-bold tracking-wider gap-2">
+                  {Array.from({ length: livesA }, (_, index) => (
+                    <Image key={index} src={Life} alt="Life Icon" className="flex w-5" />
+                  ))}
+                </div>
+              </div>
+              <div className="flex max-w-[20%] justify-center items-center w-full h-full  text-5xl font-extrabold text-white">VS</div>
+              <div className="flex-col max-w-[40%] w-full h-full">
+                <div className="flex justify-end items-end w-full h-4/6 text-4xl font-extrabold tracking-wider text-white">Team B</div>
+                <div className="flex justify-end items-center w-full h-2/6 font-bold tracking-wider gap-2">
+                  {Array.from({ length: livesB }, (_, index) => (
+                    <Image key={index} src={Life} alt="Life Icon" className="flex w-5" />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center items-center w-full h-1/2 ">
+              <div className="flex justify-center items-center min-w-4/6 h-5/6 outline outline-4 outline-white bg-[#ffbf00] rounded-2xl shadow-2xl shadow-black">
+                <div className="flex justify-center items-center w-11/12 h-full text-2xl font-extrabold tracking-wider text-[#001b4d] text-center">{room.activeQuestion.question}</div>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-center items-center w-1/6 h-full pt-3">
+            <div className="flex justify-center items-center w-36 h-36 text-4xl font-extrabold tracking-wider rounded-xl outline outline-4 outline-white bg-[#ffbf00] text-[#001b4d]">{room.scoreB}</div>
+          </div>
+        </div>
+        <div className="flex justify-center items-center max-h-[55%] h-full">
+          <div className="flex-col flex justify-center items-center max-w-[80%] w-full h-full">
+            <div className="flex-col flex justify-center items-center max-h-[90%] h-full max-w-[80%] p-2 w-full rounded-2xl bg-white shadow-2xl shadow-black">
+              <div className="flex justify-center items-center w-full h-[15%] ">
+                <div className="flex justify-center items-center h-full min-w-20 text-2xl rounded-full bg-[#ffbf00] font-extrabold tracking-wider text-[#001b4d]">{room.tempScoreA + room.tempScoreB}</div>
+              </div>
+              <div className="flex justify-center items-center h-[85%] w-full ">
+                <div className="flex-col flex justify-start pt-5 items-center h-full w-1/2 gap-5">
+                  {room.activeQuestion.answers.slice(0, Math.ceil(room.activeQuestion.answers.length / 2)).map(
+                    (a: { answer: string; score: number; revealed: boolean }, index: number) => (
+                      <div key={index} className="flex justify-start items-center max-h-[17%] h-full max-w-[90%] w-full text-xl font-extrabold outline outline-4 outline-[#001b4d] bg-[#ffbf00] rounded-2xl">
+                        <div className="flex justify-center items-center h-full w-[80%] text-[#001b4d]">{a.revealed ? a.answer : "????"}</div>
+                        <div className="flex justify-center items-center h-full w-[20%] text-white rounded-r-[13px] bg-[#001b4d]">{a.revealed ? a.score : "?"}</div>
+                      </div>
+                    )
                   )}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h4>Team B</h4>
-          <ul>
-            {room.teamB.map((user: string, index: number) => (
-              <li key={user}>
-                {user}{" "}
-                {room.currentTurn === "B" &&
-                  room.currentTurnIndex === index && (
-                    <span>(Current Turn)</span>
+                </div>
+                <div className="flex-col flex justify-start pt-5 items-center h-full w-1/2 gap-5">
+                  {room.activeQuestion.answers.slice(Math.ceil(room.activeQuestion.answers.length / 2)).map(
+                    (a: { answer: string; score: number; revealed: boolean }, index: number) => (
+                      <div key={index} className="flex justify-start items-center max-h-[17%] h-full max-w-[90%] w-full text-xl font-extrabold outline outline-4 outline-[#001b4d] bg-[#ffbf00] rounded-2xl">
+                        <div className="flex justify-center items-center h-full w-[80%] text-[#001b4d]">{a.revealed ? a.answer : "????"}</div>
+                        <div className="flex justify-center items-center h-full w-[20%] text-white rounded-r-[13px] bg-[#001b4d]">{a.revealed ? a.score : "?"}</div>
+                      </div>
+                    )
                   )}
-              </li>
-            ))}
-          </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-center items-center max-h-[25%] h-full pt-2">
+          <div className="flex justify-between items-center h-full max-w-[90%] w-full ">
+            <div className="flex justify-center items-end h-full w-[37%]  gap-4">
+              {room.teamA.map((user: string, index: number) => {
+                const isCurrentTurn = room.currentTurn === "A" && room.currentTurnIndex === index;
+                const animationClass = isCurrentTurn ? 'grow' : 'shrink';
+                return (
+                  <div key={index} className={`flex-col flex justify-center items-center max-w-[13%] w-full rounded-t-xl outline outline-4 outline-[#001b4d] bg-[#ffbf00] ${animationClass}`}>
+                    <div className="flex justify-center items-center h-1/6 w-full bg-[#001b4d] rounded-t-[10px] text-white font-bold">{index + 1}</div>
+                    <div className="flex justify-center items-center h-5/6 w-full text-2xl font-extrabold tracking-wide text-[#001b4d]">{user.substring(0, 3).toLocaleUpperCase()}</div>
+                  </div>
+                );
+              })}
+            </div>
+            {((room.currentTurn === "A" &&
+              room.teamA[room.currentTurnIndex] ===
+              localStorage.getItem("username")) ||
+              (room.currentTurn === "B" &&
+                room.teamB[room.currentTurnIndex] ===
+                localStorage.getItem("username")) ||
+              room.currentTurn === null) && (
+                <div className="flex-col flex justify-center items-center gap-4 h-full w-[25%]">
+                  <div className="flex-col flex justify-center items-center w-full h-5/6 gap-4 bg-white shadow-2xl shadow-black rounded-xl">
+                    <input className="font-extrabold text-center tracking-widest w-[90%] rounded-xl outline outline-[3px] outline-[#001b4d] max-h-10 h-full" type="text" placeholder="Your Answer" value={currentAnswer} onChange={(e) => setCurrentAnswer(e.target.value)} />
+                    <button className="flex max-w-32 w-full p-2 bg-[#24a2d3] rounded-3xl outline outline-4 hover:bg-[#ffbf00] justify-center text-lg font-extrabold tracking-wider" onClick={handleAnswer}>Submit</button>
+                  </div>
+                </div>
+              )}
+            <div className="flex justify-center items-end h-full w-[37%] gap-4">
+              {room.teamB.map((user: string, index: number) => {
+                const isCurrentTurn = room.currentTurn === "B" && room.currentTurnIndex === index;
+                const animationClass = isCurrentTurn ? 'grow' : 'shrink';
+                return (
+                  <div key={index} className={`flex-col flex justify-center items-center max-w-[13%] w-full rounded-t-xl outline outline-4 outline-[#001b4d] bg-[#ffbf00] ${animationClass}`}>
+                    <div className="flex justify-center items-center h-1/6 w-full bg-[#001b4d] rounded-t-[10px] text-white font-bold">{index + 1}</div>
+                    <div className="flex justify-center items-center h-5/6 w-full text-2xl font-extrabold tracking-wide text-[#001b4d]">{user.substring(0, 3).toLocaleUpperCase()}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
-      {((room.currentTurn === "A" &&
-        room.teamA[room.currentTurnIndex] ===
-          localStorage.getItem("username")) ||
-        (room.currentTurn === "B" &&
-          room.teamB[room.currentTurnIndex] ===
-            localStorage.getItem("username")) ||
-        room.currentTurn === null) && (
-        <div>
-          <input
-            type="text"
-            placeholder="Your answer"
-            value={currentAnswer}
-            onChange={(e) => setCurrentAnswer(e.target.value)}
-          />
-          <button onClick={handleAnswer}>Submit Answer</button>
-        </div>
-      )}
     </div>
   );
 }

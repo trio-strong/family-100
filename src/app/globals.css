@@ -19,6 +19,31 @@
     background-clip: padding-box;
   }
 
+  @keyframes grow {
+    from {
+      height: 70%;
+    }
+    to {
+      height: 100%;
+    }
+  }
+  
+  @keyframes shrink {
+    from {
+      height: 100%;
+    }
+    to {
+      height: 70%;
+    }
+  }
+  
+  .grow {
+    animation: grow 0.5s forwards;
+  }
+  
+  .shrink {
+    animation: shrink 0.5s forwards;
+  }
 @tailwind components;
 @tailwind utilities;
 

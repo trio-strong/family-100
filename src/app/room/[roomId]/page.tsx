@@ -115,7 +115,7 @@ export default function Room({
                   ))}
                 </div>
                 <div className="flex justify-center items-center min-h-10 ">
-                  <button className="flex justify-center items-center w-1/2 h-10 bg-[#001b4d] text-white font-bold rounded-[20px] " onClick={() => chooseTeam("B")}>Choose Team A</button>
+                  <button className="flex justify-center items-center w-1/2 h-10 bg-[#001b4d] text-white font-bold rounded-[20px] " onClick={() => chooseTeam("B")}>Choose Team B</button>
                 </div>
               </div>
             </div>
