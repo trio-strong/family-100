@@ -1,11 +1,12 @@
 const http = require("http");
 const { Server } = require("socket.io");
+const openAI = require("./openai");
 
 const httpServer = http.createServer();
 
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:3000", // Replace with your frontend URL
+    origin: process.env.NEXT_PUBLIC_CLIENT_URL || `http://localhost:3000`, // Replace with your frontend URL
     methods: ["GET", "POST"],
     allowedHeaders: ["my-custom-header"],
     credentials: true,
@@ -39,6 +40,8 @@ const questions = [
     category: "Pagi",
   },
 ];
+
+// openAI("sarapan pagi", 1).then(console.log);
 
 io.on("connection", (socket) => {
   console.log("a user connected");
@@ -100,6 +103,11 @@ io.on("connection", (socket) => {
       if (callback) callback();
     }
   });
+  socket.on("deleteRoom", ({ roomId }) => {
+    rooms = rooms.filter((r) => r.id !== roomId);
+    // io.to(roomId).emit("noMoreQuestions", { room });
+    io.emit("rooms", rooms);
+  });
 
   socket.on("chooseTeam", ({ roomId, team, username }) => {
     const room = rooms.find((r) => r.id === roomId);
@@ -123,110 +131,153 @@ io.on("connection", (socket) => {
   socket.on("startGame", ({ roomId }) => {
     const room = rooms.find((r) => r.id === roomId);
     if (room) {
-      console.log(room, "<<room server");
       room.activeQuestion = room.questions.shift();
       io.to(roomId).emit("startGame", { room });
     }
   });
 
-  socket.on("answer", ({ roomId, answer, team, username }, callback) => {
+  socket.on("answer", async ({ roomId, answer, team, username }, callback) => {
     const room = rooms.find((r) => r.id === roomId);
     if (room) {
       const activeQuestion = room.activeQuestion;
-      const answerObj = activeQuestion.answers.find(
-        (a) => a.answer.toLowerCase() === answer.toLowerCase()
-      );
+      // const answerObj = activeQuestion.answers.find(
+      //   (a) => a.answer.toLowerCase() === answer.toLowerCase()
+      // );
+      const realAnswers = activeQuestion.answers.map((a) => a.answer);
+      const comparisonResult = await openAI.compareAnswer(answer, realAnswers);
+      console.log(comparisonResult);
 
-      if (answerObj && !answerObj.revealed) {
-        answerObj.revealed = true;
+      if (comparisonResult.status && comparisonResult.percentage > 70) {
+        const answerObj = activeQuestion.answers.find(
+          (a) =>
+            a.answer.toLowerCase() === comparisonResult.matched.toLowerCase()
+        );
 
-        if (team === "A") {
-          room.tempScoreA += answerObj.score;
-        } else if (team === "B") {
-          room.tempScoreB += answerObj.score;
-        }
+        io.to(roomId).emit("userAnswer", { username, answer, correct: true });
 
-        const allRevealed = activeQuestion.answers.every((a) => a.revealed);
-
-        if (allRevealed) {
-          //sapu bersih
+        if (answerObj && !answerObj.revealed) {
+          answerObj.revealed = true;
           if (team === "A") {
-            room.scoreA += room.tempScoreA;
-          } else {
-            room.scoreB += room.tempScoreB;
-          }
-          if (room.questions.length > 0) {
-            room.tempScoreA = 0;
-            room.tempScoreB = 0;
-            room.activeQuestion = room.questions.shift();
-            room.currentTurn = null;
-            io.to(roomId).emit("roomData", { room });
-          } else {
-            // If there are no more questions, emit a "gameOver" event
-            io.to(roomId).emit("gameOver", { room });
+            room.tempScoreA += answerObj.score;
+          } else if (team === "B") {
+            room.tempScoreB += answerObj.score;
           }
 
-          // io.to(roomId).emit("roomData", { room });
-          setTimeout(() => {
-            io.to(roomId).emit("nextRound", { room });
-          }, 2000);
-        } else {
-          if (room.livesA === 0 || room.livesB === 0) {
-            const opponentTeam = room.currentTurn;
+          const allRevealed = activeQuestion.answers.every((a) => a.revealed);
 
-            // If the opponent team answers correctly, transfer the temporary score
-
-            if (opponentTeam === "A") {
-              room.tempScoreA += room.tempScoreB;
+          if (allRevealed) {
+            //sapu bersih
+            if (team === "A") {
               room.scoreA += room.tempScoreA;
-              room.tempScoreB = 0;
             } else {
-              room.tempScoreB += room.tempScoreA;
               room.scoreB += room.tempScoreB;
-              room.tempScoreA = 0;
             }
-
             if (room.questions.length > 0) {
               room.tempScoreA = 0;
               room.tempScoreB = 0;
-              room.currentTurn = null;
               room.activeQuestion = room.questions.shift();
+              room.currentTurn = null;
               io.to(roomId).emit("roomData", { room });
             } else {
               // If there are no more questions, emit a "gameOver" event
-              io.to(roomId).emit("gameOver", { room });
+
+              io.to(roomId).emit("noMoreQuestions", { room });
             }
 
-            // Reset the lives of the team that lost all their lives
-            // if (room.livesA === 0) {
-            //   room.livesA = 3;
-            // } else {
-            //   room.livesB = 3;
-            // }
             // io.to(roomId).emit("roomData", { room });
+            setTimeout(() => {
+              io.to(roomId).emit("nextRound", { room });
+            }, 2000);
           } else {
-            room.currentTurnIndex++;
-            if (team === "A") {
-              if (room.currentTurnIndex >= room.teamA.length) {
-                room.currentTurnIndex = 0;
-              }
-              room.currentTurnPlayer = room.teamA[room.currentTurnIndex];
-            } else {
-              if (room.currentTurnIndex >= room.teamB.length) {
-                room.currentTurnIndex = 0;
-              }
-              room.currentTurnPlayer = room.teamB[room.currentTurnIndex];
-            }
-            io.to(roomId).emit("roomData", { room });
-          }
-        }
+            if (room.livesA === 0 || room.livesB === 0) {
+              const opponentTeam = room.currentTurn;
 
-        if (typeof callback === "function") {
-          callback({ correct: true, score: answerObj.score });
+              // If the opponent team answers correctly, transfer the temporary score
+
+              if (opponentTeam === "A") {
+                room.tempScoreA += room.tempScoreB;
+                room.scoreA += room.tempScoreA;
+                room.tempScoreB = 0;
+              } else {
+                room.tempScoreB += room.tempScoreA;
+                room.scoreB += room.tempScoreB;
+                room.tempScoreA = 0;
+              }
+
+              if (room.questions.length > 0) {
+                room.livesA = 3;
+                room.livesB = 3;
+                room.tempScoreA = 0;
+                room.tempScoreB = 0;
+                room.currentTurn = null;
+                room.activeQuestion = room.questions.shift();
+                io.to(roomId).emit("roomData", { room });
+              } else {
+                // If there are no more questions, emit a "gameOver" event
+
+                io.to(roomId).emit("noMoreQuestions", { room });
+              }
+
+              // Reset the lives of the team that lost all their lives
+              // if (room.livesA === 0) {
+              //   room.livesA = 3;
+              // } else {
+              //   room.livesB = 3;
+              // }
+              // io.to(roomId).emit("roomData", { room });
+            } else {
+              room.currentTurnIndex++;
+              if (team === "A") {
+                if (room.currentTurnIndex >= room.teamA.length) {
+                  room.currentTurnIndex = 0;
+                }
+                room.currentTurnPlayer = room.teamA[room.currentTurnIndex];
+              } else {
+                if (room.currentTurnIndex >= room.teamB.length) {
+                  room.currentTurnIndex = 0;
+                }
+                room.currentTurnPlayer = room.teamB[room.currentTurnIndex];
+              }
+              io.to(roomId).emit("roomData", { room });
+            }
+          }
+
+          if (typeof callback === "function") {
+            callback({ correct: true, score: answerObj.score });
+          }
         }
       } else {
         if (typeof callback === "function") {
           callback({ correct: false });
+        }
+
+        io.to(roomId).emit("userAnswer", { username, answer, correct: false });
+
+        if (room.livesA === 0 || room.livesB === 0) {
+          // Add the temporary score to the score
+          if (team === "B") {
+            room.scoreA += room.tempScoreA;
+            room.tempScoreA = 0;
+          } else {
+            room.scoreB += room.tempScoreB;
+            room.tempScoreB = 0;
+          }
+          // Check if there are any remaining questions
+          if (room.questions.length > 0) {
+            room.livesA = 3;
+            room.livesB = 3;
+            room.tempScoreA = 0;
+            room.tempScoreB = 0;
+            room.currentTurn = null;
+            room.activeQuestion = room.questions.shift();
+            io.to(roomId).emit("roomData", { room });
+          } else {
+            // If there are no more questions, emit a "gameOver" event
+
+            io.to(roomId).emit("noMoreQuestions", { room });
+          }
+
+          return;
         }
 
         if (team === "A") {
@@ -238,23 +289,6 @@ io.on("connection", (socket) => {
         if (room.livesA === 0 || room.livesB === 0) {
           const opponent = team === "A" ? "B" : "A";
           room.currentTurn = opponent;
-
-          // Add the temporary score to the score
-          if (team === "A") {
-            room.scoreA += room.tempScoreA;
-            room.tempScoreA = 0;
-          } else {
-            room.scoreB += room.tempScoreB;
-            room.tempScoreB = 0;
-          }
-
-          // Check if there are any remaining questions
-          if (room.questions.length > 0) {
-            room.activeQuestion = room.questions.shift();
-          } else {
-            // If there are no more questions, emit a "gameOver" event
-            io.to(roomId).emit("gameOver", { room });
-          }
 
           room.currentTurnIndex = Math.floor(
             Math.random() * room[`team${opponent}`].length
@@ -322,65 +356,82 @@ io.on("connection", (socket) => {
   });
 
   // Logika untuk menangani jawaban di babak perebutan
-  socket.on("battleAnswer", ({ roomId, answer, team, username }, callback) => {
-    const room = rooms.find((r) => r.id === roomId);
-    if (room && room.currentTurn === null) {
-      const activeQuestion = room.activeQuestion;
-      const answerObj = activeQuestion.answers.find(
-        (a) => a.answer.toLowerCase() === answer.toLowerCase()
-      );
+  socket.on(
+    "battleAnswer",
+    async ({ roomId, answer, team, username }, callback) => {
+      const room = rooms.find((r) => r.id === roomId);
+      if (room && room.currentTurn === null) {
+        const activeQuestion = room.activeQuestion;
+        // const answerObj = activeQuestion.answers.find(
+        //   (a) => a.answer.toLowerCase() === answer.toLowerCase()
+        // );
 
-      if (answerObj && !answerObj.revealed) {
-        answerObj.revealed = true;
-
-        if (team === "A") {
-          room.tempScoreA += answerObj.score;
-          room.answeredTeams.A = true; // Add team A to the answeredTeams
-        } else if (team === "B") {
-          room.tempScoreB += answerObj.score;
-          room.answeredTeams.B = true; // Add team B to the answeredTeams
-        }
-
-        const allRevealed = activeQuestion.answers.every((a) => a.revealed);
-
-        if (allRevealed || (room.answeredTeams.A && room.answeredTeams.B)) {
-          if (room.tempScoreA > room.tempScoreB) {
-            room.currentTurn = "A";
-          } else {
-            room.currentTurn = "B";
-          }
-          room.answeredTeams = {}; // Reset the answeredTeams for the next round
-          io.to(roomId).emit("roomData", { room });
-        }
-
-        if (typeof callback === "function") {
-          callback({ correct: true, score: answerObj.score });
-        }
-      } else {
-        // If the answer is incorrect, mark the team as having answered
+        // If already answer mark the team as having answered
         if (team === "A") {
           room.answeredTeams.A = true;
         } else if (team === "B") {
           room.answeredTeams.B = true;
         }
+        console.log(room);
 
-        // Check if both teams have answered
-        if (room.answeredTeams.A && room.answeredTeams.B) {
-          if (room.tempScoreA > room.tempScoreB) {
-            room.currentTurn = "A";
-          } else {
-            room.currentTurn = "B";
+        io.to(roomId).emit("roomData", { room });
+
+        const realAnswers = activeQuestion.answers.map((a) => a.answer);
+        const comparisonResult = await openAI.compareAnswer(
+          answer,
+          realAnswers
+        );
+        console.log(comparisonResult);
+
+        if (comparisonResult.status && comparisonResult.percentage > 70) {
+          const answerObj = activeQuestion.answers.find(
+            (a) =>
+              a.answer.toLowerCase() === comparisonResult.matched.toLowerCase()
+          );
+          if (answerObj && !answerObj.revealed) {
+            answerObj.revealed = true;
+
+            if (team === "A") {
+              room.tempScoreA += answerObj.score;
+            } else if (team === "B") {
+              room.tempScoreB += answerObj.score;
+            }
+
+            const allRevealed = activeQuestion.answers.every((a) => a.revealed);
+
+            if (allRevealed || (room.answeredTeams.A && room.answeredTeams.B)) {
+              if (room.tempScoreA > room.tempScoreB) {
+                room.currentTurn = "A";
+              } else {
+                room.currentTurn = "B";
+              }
+              room.answeredTeams = {}; // Reset the answeredTeams for the next round
+              io.to(roomId).emit("roomData", { room });
+            }
+
+            if (typeof callback === "function") {
+              callback({ correct: true, score: answerObj.score });
+            }
           }
-          room.answeredTeams = {}; // Reset the answeredTeams for the next round
-          io.to(roomId).emit("roomData", { room });
-        }
+        } else {
+          // Check if both teams have answered
+          if (room.answeredTeams.A && room.answeredTeams.B) {
+            if (room.tempScoreA > room.tempScoreB) {
+              room.currentTurn = "A";
+            } else if (room.tempScoreA < room.tempScoreB) {
+              room.currentTurn = "B";
+            }
+            room.answeredTeams = {}; // Reset the answeredTeams for the next round
+            io.to(roomId).emit("roomData", { room });
+          }
 
-        if (typeof callback === "function") {
-          callback({ correct: false });
+          if (typeof callback === "function") {
+            callback({ correct: false });
+          }
         }
       }
     }
-  });
+  );
 
   socket.on("gameOver", ({ roomId }) => {
     const room = rooms.find((r) => r.id === roomId);
