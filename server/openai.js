@@ -22,15 +22,8 @@ class OpenAIClass {
           {
             role: "system",
             content: `
-            Saya memiliki kata atau frasa: ${answerByUser}. Di bawah ini adalah kumpulan data yang terdiri dari list kata atau frase:
-            ${stringAnswers}
-
-            Tolong evaluasi kata atau frase mana dari kumpulan list tersebut yang paling mirip dengan jawaban tersebut berdasarkan maknanya. Keluarkan hasilnya dalam format JSON sebagai berikut:
-            {
-            "status": boolean, # Apakah ada kemiripan atau tidak
-            "matched": "<kata atau frase terdekat>", # Kata atau frase yang paling sesuai
-            "percentage": <nilai kemiripan dalam persentase> # Persentase kemiripan
-            }
+            Buat ${totalQuestion} pertanyaan seperti family 100 dengan kategori ${category}, dan buat menjadi format sebagai berikut:
+                [{id: serial,question: "",answers: [{answer: "",score: point,revealed: false}}]}]
             `,
           },
         ],
@@ -46,20 +39,24 @@ class OpenAIClass {
   // 1 hit, return array
   static async compareAnswer(answerByUser, realAnswer) {
     try {
+      let stringAnswers = "";
+      realAnswer.forEach((a, idx) => {
+        stringAnswers += `${idx + 1}. ${a}. `;
+      });
       const completion = await this.openai().chat.completions.create({
         messages: [
           {
             role: "system",
             content: `
-              Saya memiliki jawaban: ${answerByUser}. Di bawah ini adalah kumpulan data yang terdiri dari kata atau frase:
-              ${realAnswer}
+            Saya memiliki kata atau frasa: ${answerByUser}. Di bawah ini adalah kumpulan data yang terdiri dari list kata atau frase:
+            ${stringAnswers}
 
-              Tolong evaluasi kata atau frase mana yang paling sesuai dengan ${answerByUser} berdasarkan kemiripannya. Keluarkan hasilnya dalam format JSON sebagai berikut:
-              {
-              "status": boolean, # Apakah ada kemiripan atau tidak
-              "matched": "<kata atau frase terdekat>", # Kata atau frase yang paling sesuai
-              "percentage": <nilai kemiripan dalam persentase> # Persentase kemiripan
-              }
+            Tolong evaluasi kata atau frase mana dari kumpulan list tersebut yang paling mirip dengan jawaban tersebut berdasarkan maknanya. Keluarkan hasilnya dalam format JSON sebagai berikut:
+            {
+            "status": boolean, # Apakah ada kemiripan atau tidak
+            "matched": "<kata atau frase terdekat>", # Kata atau frase yang paling sesuai
+            "percentage": <nilai kemiripan dalam persentase> # Persentase kemiripan
+            }
           `,
           },
         ],
