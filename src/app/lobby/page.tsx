@@ -67,7 +67,7 @@ export default function Lobby() {
   };
   return (
     <div
-      className="flex flex-col max-h-screen w-full "
+      className="flex flex-col max-w-screen w-full max-h-screen h-screen "
       style={{
         backgroundImage: `url('/textura.png')`,
         backgroundRepeat: "repeat",
@@ -127,7 +127,7 @@ export default function Lobby() {
           </div>
         </div>
       )}
-      <div className="flex w-full max-h-14 h-full justify-end items-center  p-4">
+      <div className="flex w-full max-h-[7%] h-full justify-end items-center p-4">
         <button
           className="flex font-extrabold tracking-wider gap-3 text-2xl ustify-center items-center text-white"
           onClick={logoutHandler}
@@ -135,9 +135,9 @@ export default function Lobby() {
           Exit <Image src={ExitIcon} alt="User Icon" className="flex w-5" />
         </button>
       </div>
-      <div className="flex flex-col max-h-screen w-full px-20 pb-20 overflow-y-auto">
-        <div className="flex h-96 justify-start items-center rounded-2xl px-5 gap-10 mb-3 bg-white shadow-2xl shadow-black">
-          <div className="flex justify-end min-w-40 items-center text-3xl font-extrabold  gap-2 text-[#001b4d] ">
+      <div className="flex flex-col max-h-[93%] h-full gap-2 w-full px-20 pb-20 overflow-y-auto ">
+        <div className="flex max-h-[10%] h-full justify-start items-center rounded-2xl px-5 gap-10 mb-3 bg-white shadow-2xl shadow-black">
+          <div className="flex justify-end min-w-40 items-center text-3xl font-extrabold gap-2 text-[#001b4d] ">
             <Image
               src={ControllerIcon}
               alt="User Icon"
@@ -174,8 +174,8 @@ export default function Lobby() {
             </div>
           </div>
         </div>
-        <div className=" flex-col flex  items-center w-full min-h-[73vh] px-3 gap-10 rounded-3xl  bg-white  shadow-2xl shadow-black">
-          <div className="flex flex-wrap   w-full overflow-y-scroll my-2 px-10 pb-10 pt-5 gap-4 ">
+        <div className=" flex-col flex items-center w-full max-h-[83%] h-full px-3 gap-10 rounded-3xl bg-white  shadow-2xl shadow-black">
+          <div className="flex flex-wrap w-full overflow-y-scroll my-2 px-10 pb-10 pt-5 gap-4 ">
             {rooms.map((room: any) => (
               <div
                 key={room.id}

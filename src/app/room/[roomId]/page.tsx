@@ -68,16 +68,16 @@ export default function Room({
 
   return (
     <div
-      className="flex flex-col h-screen w-full "
+      className="flex flex-col max-w-screen w-full max-h-screen h-screen"
       style={{
         backgroundImage: `url('/textura.png')`,
         backgroundRepeat: "repeat",
         backgroundColor: `#0a5efb`,
       }}
     >
-      <div className="flex flex-col w-full h-full justify-center align-middle ">
+      <div className="flex flex-col w-full h-full justify-center align-middle">
         <div className="flex justify-center items-center w-full h-full">
-          <div className="flex flex-col w-5/6 h-[700px] p-4 bg-white rounded-[40px] shadow-2xl shadow-black">
+          <div className="flex flex-col w-5/6 max-h-[90%] h-full p-4 bg-white rounded-[40px] shadow-2xl shadow-black">
             <div className=" flex justify-center items-center w-full">
               <div className="flex justify-center items-center gap-2">
                 <Image
