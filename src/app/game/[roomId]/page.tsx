@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import io from "socket.io-client";
 import Life from "../../../../public/heart.png";
 import Image from "next/image";
+import CorrectIcon from "../../../../public/correct.png";
+import WrongIcon from "../../../../public/false.png";
 let socket: any;
 
 export default function Game({
@@ -68,18 +70,7 @@ export default function Game({
 
         // Start the countdown timer
         setCountdown(5);
-        const timer = setInterval(() => {
-          setCountdown((prevCountdown) => {
-            if (prevCountdown <= 1) {
-              // Clear the countdown timer when the countdown reaches 0
-              clearInterval(timer);
 
-              // Show the result when the countdown is over
-              setShowResult(true);
-            }
-            return prevCountdown - 1;
-          });
-        }, 1000);
       }
     );
 
@@ -134,16 +125,72 @@ export default function Game({
 
     setCurrentAnswer("");
   };
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+
+      timer = setInterval(() => {
+        setCountdown((prevCountdown) => prevCountdown - 1);
+      }, 1000);
+    } else if (countdown === 0) {
+
+      setShowResult(true);
+      timer = setTimeout(() => {
+        setUserAnswer(null);
+        setShowResult(false);
+      }, 3000);
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [countdown]);
+
   console.log(room);
 
   if (!room) return <div>Loading...</div>;
 
   return (
-    <div className="flex flex-col max-w-screen w-full max-h-screen h-screen " style={{
+    <div className="flex flex-col max-w-screen w-full max-h-screen h-screen" style={{
       backgroundImage: `url('/textura.png')`,
       backgroundRepeat: 'repeat',
       backgroundColor: `#0a5efb`
     }}>
+      {
+        userAnswer &&
+        userAnswer.username !== localStorage.getItem("username") && (
+          <div className="absolute flex flex-col w-full h-full justify-center align-middle ">
+            <div className="flex justify-center items-center w-full h-full bg-black bg-opacity-50">
+              <div className="flex flex-col w-1/4 h-1/2 p-4 bg-white rounded-[40px] shadow-2xl shadow-black">
+                <div className="flex justify-center items-center w-full h-full">
+                  {countdown === 0 ? (
+                    <div className="flex-col flex justify-center items-center w-full h-full">
+                      <div className=" flex justify-center items-center w-full h-2/6 text-4xl font-extrabold tracking-wider text-center text-[#001b4d]">
+                        {userAnswer.correct ? "Correct!" : "Incorrect!"}
+                      </div>
+                      <div className=" flex justify-center items-center w-full h-4/6">
+                        <Image src={userAnswer.correct ? CorrectIcon : WrongIcon} className="flex justify-center items-center w-40 h-40" alt="Answer Icon" />
+                      </div>
+
+                    </div>
+                  ) : (
+                    <div className="flex-col flex justify-center items-center w-full h-full">
+                      <div className="flex-col flex justify-center items-center w-full h-1/2">
+                        <div className="flex justify-center items-center w-full h-1/2 text-2xl font-extrabold tracking-wider text-center text-[#001b4d]">{userAnswer.username} answered:</div>
+                        <div className="flex justify-center items-center w-full h-1/2 text-5xl font-black tracking-widest text-center text-[#001b4d]">{userAnswer.answer}</div>
+                      </div>
+                      <div className="flex justify-center items-center w-full h-1/2">
+                        <div className="flex justify-center items-center w-32 h-32 rounded-full text-5xl font-black bg-[#ffbf00] outline outline-8 text-[#001b4d] outline-[#001b4d]">{countdown}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
       <div className="flex-col w-full h-full">
         <div className="flex justify-center items-center max-h-[20%] h-full">
           <div className="flex justify-center items-center w-1/6 h-full pt-3">
@@ -154,7 +201,7 @@ export default function Game({
               <div className="flex-col max-w-[40%] w-full h-full">
                 <div className="flex justify-start items-end w-full h-4/6 text-4xl font-extrabold tracking-wider text-white">Team A</div>
                 <div className="flex justify-start items-center w-full h-2/6 font-bold tracking-wider gap-2">
-                  {Array.from({ length: livesA }, (_, index) => (
+                  {Array.from({ length: room.livesA }, (_, index) => (
                     <Image key={index} src={Life} alt="Life Icon" className="flex w-5" />
                   ))}
                 </div>
@@ -163,7 +210,7 @@ export default function Game({
               <div className="flex-col max-w-[40%] w-full h-full">
                 <div className="flex justify-end items-end w-full h-4/6 text-4xl font-extrabold tracking-wider text-white">Team B</div>
                 <div className="flex justify-end items-center w-full h-2/6 font-bold tracking-wider gap-2">
-                  {Array.from({ length: livesB }, (_, index) => (
+                  {Array.from({ length: room.livesB }, (_, index) => (
                     <Image key={index} src={Life} alt="Life Icon" className="flex w-5" />
                   ))}
                 </div>
@@ -190,8 +237,8 @@ export default function Game({
                   {room.activeQuestion.answers.slice(0, Math.ceil(room.activeQuestion.answers.length / 2)).map(
                     (a: { answer: string; score: number; revealed: boolean }, index: number) => (
                       <div key={index} className="flex justify-start items-center max-h-[17%] h-full max-w-[90%] w-full text-xl font-extrabold outline outline-4 outline-[#001b4d] bg-[#ffbf00] rounded-2xl">
-                        <div className="flex justify-center items-center h-full w-[80%] text-[#001b4d]">{a.revealed ? a.answer : "????"}</div>
-                        <div className="flex justify-center items-center h-full w-[20%] text-white rounded-r-[13px] bg-[#001b4d]">{a.revealed ? a.score : "?"}</div>
+                        <div className="flex justify-center items-center h-full w-[80%] text-[#001b4d]">{a.revealed && countdown === 0 ? a.answer : "????"}</div>
+                        <div className="flex justify-center items-center h-full w-[20%] text-white rounded-r-[13px] bg-[#001b4d]">{a.revealed && countdown === 0 ? a.score : "?"}</div>
                       </div>
                     )
                   )}
@@ -200,8 +247,8 @@ export default function Game({
                   {room.activeQuestion.answers.slice(Math.ceil(room.activeQuestion.answers.length / 2)).map(
                     (a: { answer: string; score: number; revealed: boolean }, index: number) => (
                       <div key={index} className="flex justify-start items-center max-h-[17%] h-full max-w-[90%] w-full text-xl font-extrabold outline outline-4 outline-[#001b4d] bg-[#ffbf00] rounded-2xl">
-                        <div className="flex justify-center items-center h-full w-[80%] text-[#001b4d]">{a.revealed ? a.answer : "????"}</div>
-                        <div className="flex justify-center items-center h-full w-[20%] text-white rounded-r-[13px] bg-[#001b4d]">{a.revealed ? a.score : "?"}</div>
+                        <div className="flex justify-center items-center h-full w-[80%] text-[#001b4d]">{a.revealed && countdown === 0 ? a.answer : "????"}</div>
+                        <div className="flex justify-center items-center h-full w-[20%] text-white rounded-r-[13px] bg-[#001b4d]">{a.revealed && countdown === 0 ? a.score : "?"}</div>
                       </div>
                     )
                   )}
@@ -226,11 +273,17 @@ export default function Game({
             </div>
             {((room.currentTurn === "A" &&
               room.teamA[room.currentTurnIndex] ===
-              localStorage.getItem("username")) ||
+              localStorage.getItem("username") &&
+              !room.answeredTeams.A) ||
               (room.currentTurn === "B" &&
                 room.teamB[room.currentTurnIndex] ===
-                localStorage.getItem("username")) ||
-              room.currentTurn === null) && (
+                localStorage.getItem("username") &&
+                !room.answeredTeams.B) ||
+              (room.currentTurn === null &&
+                ((room.teamA.includes(localStorage.getItem("username")) &&
+                  !room.answeredTeams.A) ||
+                  (room.teamB.includes(localStorage.getItem("username")) &&
+                    !room.answeredTeams.B)))) && (
                 <div className="flex-col flex justify-center items-center gap-4 h-full w-[25%]">
                   <div className="flex-col flex justify-center items-center w-full h-5/6 gap-4 bg-white shadow-2xl shadow-black rounded-xl">
                     <input className="font-extrabold text-center tracking-widest w-[90%] rounded-xl outline outline-[3px] outline-[#001b4d] max-h-10 h-full" type="text" placeholder="Your Answer" value={currentAnswer} onChange={(e) => setCurrentAnswer(e.target.value)} />
@@ -253,41 +306,6 @@ export default function Game({
           </div>
         </div>
       </div>
-      {((room.currentTurn === "A" &&
-        room.teamA[room.currentTurnIndex] ===
-        localStorage.getItem("username") &&
-        !room.answeredTeams.A) ||
-        (room.currentTurn === "B" &&
-          room.teamB[room.currentTurnIndex] ===
-          localStorage.getItem("username") &&
-          !room.answeredTeams.B) ||
-        (room.currentTurn === null &&
-          ((room.teamA.includes(localStorage.getItem("username")) &&
-            !room.answeredTeams.A) ||
-            (room.teamB.includes(localStorage.getItem("username")) &&
-              !room.answeredTeams.B)))) && (
-          <div>
-            <input
-              type="text"
-              placeholder="Your answer"
-              value={currentAnswer}
-              onChange={(e) => setCurrentAnswer(e.target.value)}
-            />
-            <button onClick={handleAnswer}>Submit Answer</button>
-          </div>
-        )}
-      {userAnswer &&
-        userAnswer.username !== localStorage.getItem("username") && (
-          <div>
-            <p>
-              {userAnswer.username} answered: {userAnswer.answer}
-            </p>
-            {showResult && (
-              <p>{userAnswer.correct ? "Correct!" : "Incorrect!"}</p>
-            )}
-            <p>Survey membuktikan: {countdown}</p>
-          </div>
-        )}
     </div>
   );
 }

@@ -34,37 +34,37 @@ export default function Home() {
     }
   };
 
-  return (
-    <div>
-      <div
-        className={styles.main_div}
-        style={{ display: showChat ? "none" : "" }}
-      >
-        <input
-          className={styles.main_input}
-          type="text"
-          placeholder="Username"
-          onChange={(e) => setUserName(e.target.value)}
-          disabled={showSpinner}
-        />
-        <input
-          className={styles.main_input}
-          type="text"
-          placeholder="room id"
-          onChange={(e) => setRoomId(e.target.value)}
-          disabled={showSpinner}
-        />
-        <button className={styles.main_button} onClick={() => handleJoin()}>
-          {!showSpinner ? (
-            "Join"
-          ) : (
-            <div className={styles.loading_spinner}></div>
-          )}
-        </button>
-      </div>
-      <div style={{ display: !showChat ? "none" : "" }}>
-        <ChatPage socket={socket} roomId={roomId} username={userName} />
-      </div>
-    </div>
-  );
+  // return (
+  //   <div>
+  //     <div
+  //       className={styles.main_div}
+  //       style={{ display: showChat ? "none" : "" }}
+  //     >
+  //       <input
+  //         className={styles.main_input}
+  //         type="text"
+  //         placeholder="Username"
+  //         onChange={(e) => setUserName(e.target.value)}
+  //         disabled={showSpinner}
+  //       />
+  //       <input
+  //         className={styles.main_input}
+  //         type="text"
+  //         placeholder="room id"
+  //         onChange={(e) => setRoomId(e.target.value)}
+  //         disabled={showSpinner}
+  //       />
+  //       <button className={styles.main_button} onClick={() => handleJoin()}>
+  //         {!showSpinner ? (
+  //           "Join"
+  //         ) : (
+  //           <div className={styles.loading_spinner}></div>
+  //         )}
+  //       </button>
+  //     </div>
+  //     <div style={{ display: !showChat ? "none" : "" }}>
+  //       <ChatPage socket={socket} roomId={roomId} username={userName} />
+  //     </div>
+  //   </div>
+  // );
 }
