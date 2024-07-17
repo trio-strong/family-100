@@ -34,6 +34,11 @@ export default function Lobby() {
       }
     });
 
+    socket.on("roomCreated", (newRoom: any) => {
+      // Update the list of rooms
+      setRooms(newRoom);
+    });
+
     const storedUsername = localStorage.getItem("username");
     if (storedUsername) {
       setUsername(storedUsername);
@@ -47,7 +52,7 @@ export default function Lobby() {
   const createRoom = () => {
     const username = localStorage.getItem("username");
     socket.emit("createRoom", { roomName, category, username }, (room: any) => {
-      router.push(`/room/${room.id}`);
+      router.push(`/room/${room._id}`);
     });
   };
 
@@ -65,6 +70,7 @@ export default function Lobby() {
     localStorage.removeItem("username");
     router.push("/");
   };
+  console.log(rooms);
   return (
     <div
       className="flex flex-col max-h-screen w-full "
@@ -136,7 +142,7 @@ export default function Lobby() {
         </button>
       </div>
       <div className="flex flex-col max-h-screen w-full px-20 pb-20 overflow-y-auto">
-        <div className="flex h-96 justify-start items-center rounded-2xl px-5 gap-10 mb-3 bg-white shadow-2xl shadow-black">
+        <div className="flex h-[65px] justify-start items-center rounded-2xl px-5 gap-10 mb-3 bg-white shadow-2xl shadow-black">
           <div className="flex justify-end min-w-40 items-center text-3xl font-extrabold  gap-2 text-[#001b4d] ">
             <Image
               src={ControllerIcon}
@@ -176,24 +182,24 @@ export default function Lobby() {
         </div>
         <div className=" flex-col flex  items-center w-full min-h-[73vh] px-3 gap-10 rounded-3xl  bg-white  shadow-2xl shadow-black">
           <div className="flex flex-wrap   w-full overflow-y-scroll my-2 px-10 pb-10 pt-5 gap-4 ">
-            {rooms.map((room: any) => (
+            {rooms?.map((room: any) => (
               <div
-                key={room.id}
+                key={room._id}
                 className="flex max-w-xl w-full h-16 rounded-2xl outline outline-4 outline-[#001b4d] bg-[#ffbf00]"
               >
                 <div className="flex grow p-2 text-[#001b4d] ">
                   <div className="flex-col justify-start px-2 min-w-80 h-full ">
                     <div className="flex justify-start items-center w-full text-2xl italic font-extrabold ">
-                      {room.name}
+                      {room?.name}
                     </div>
                     <div className="flex justify-start items-center w-full text-xs italic font-bold tracking-widest">
-                      Players: {room.users.length}/10
+                      Players: {room?.users.length}/10
                     </div>
                   </div>
                   <div className="flex justify-center items-center grow h-full">
                     <div className="flex justify-center items-center w-full h-full text-lg italic font-black tracking-widest">
                       {" "}
-                      {room.questions[0]?.category}
+                      {room?.questions ? room.questions[0]?.category : ""}
                     </div>
                   </div>
                 </div>
@@ -205,7 +211,7 @@ export default function Lobby() {
                   />
                   <button
                     className="font-extrabold text-2xl text-white"
-                    onClick={() => joinRoom(room.id)}
+                    onClick={() => joinRoom(room._id)}
                   >
                     JOIN
                   </button>

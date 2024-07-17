@@ -15,6 +15,7 @@ export default function Game({
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [livesA, setLivesA] = useState(3);
   const [livesB, setLivesB] = useState(3);
+  const [isConnected, setIsConnected] = useState(false);
 
   // Add a new state variable for the user's answer and whether it's correct or not
   const [userAnswer, setUserAnswer] = useState<{
@@ -31,8 +32,15 @@ export default function Game({
   const roomId = params.roomId;
 
   useEffect(() => {
-    socket = io(process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:3001");
+    socket = io("http://localhost:3001");
 
+    socket.on("connected", () => {
+      setIsConnected(true);
+      console.log("masuk");
+    });
+  }, []);
+
+  useEffect(() => {
     socket.emit("joinRoom", {
       roomId,
       username: localStorage.getItem("username"),
@@ -86,10 +94,10 @@ export default function Game({
       router.push(`/awarding/${roomId}`);
     });
 
-    return () => {
-      socket.disconnect();
-    };
-  }, [roomId]);
+    // return () => {
+    //   socket.disconnect();
+    // };
+  }, [roomId, isConnected]);
 
   const handleAnswer = () => {
     if (!socket) {
@@ -133,7 +141,7 @@ export default function Game({
 
     setCurrentAnswer("");
   };
-  console.log(room);
+  // console.log(room);
 
   if (!room) return <div>Loading...</div>;
 
@@ -154,9 +162,9 @@ export default function Game({
         <p>Team B: {room.livesB}</p>
       </div>
       <div>
-        <h3>Current Question: {room.activeQuestion.question}</h3>
+        <h3>Current Question: {room?.activeQuestion?.question}</h3>
         <ul>
-          {room.activeQuestion.answers.map(
+          {room?.activeQuestion?.answers?.map(
             (
               a: { answer: string; score: number; revealed: boolean },
               index: number

@@ -22,15 +22,26 @@ class OpenAIClass {
           {
             role: "system",
             content: `
-            Buat ${totalQuestion} pertanyaan seperti family 100 dengan kategori ${category}, dan buat menjadi format sebagai berikut:
-                [{id: serial,question: "",answers: [{answer: "",score: point,revealed: false}}]}]
+            Buat ${totalQuestion} pertanyaan seperti family 100 dengan kategori ${category} dengan masing-masing minimal 3 sampai 7 jawaban, dan buat menjadi format json sebagai berikut:
+              [
+                {
+                  id: serial,question: "", 
+                  answers: [
+                    {answer: "",score: point}
+                    ]
+                }
+              ]
             `,
           },
         ],
         model: "gpt-3.5-turbo",
       });
 
-      return completion.choices[0].message.content ?? "";
+      console.log(completion.choices[0].message.content);
+      console.log("\n\n\n");
+      const result = safeJsonParse(completion.choices[0].message.content);
+
+      return result;
     } catch (error) {
       console.error(error);
     }
@@ -39,15 +50,20 @@ class OpenAIClass {
   // 1 hit, return array
   static async compareAnswer(answerByUser, realAnswer) {
     try {
+      let stringAnswers = "";
+      realAnswer.forEach((a, idx) => {
+        stringAnswers += `${idx + 1}. ${a}. `;
+      });
+
       const completion = await this.openai().chat.completions.create({
         messages: [
           {
-            role: "system",
+            role: "user",
             content: `
-              Saya memiliki jawaban: ${answerByUser}. Di bawah ini adalah kumpulan data yang terdiri dari kata atau frase:
-              ${realAnswer}
+              Saya memiliki kata atau frasa: ${answerByUser}. Di bawah ini adalah kumpulan data yang terdiri dari list kata atau frase:
+              ${stringAnswers}
 
-              Tolong evaluasi kata atau frase mana yang paling sesuai dengan ${answerByUser} berdasarkan kemiripannya. Keluarkan hasilnya dalam format JSON sebagai berikut:
+              Tolong evaluasi kata atau frase mana dari kumpulan list tersebut yang paling mirip dengan jawaban tersebut berdasarkan maknanya. Keluarkan hasilnya dalam format JSON sebagai berikut:
               {
               "status": boolean, # Apakah ada kemiripan atau tidak
               "matched": "<kata atau frase terdekat>", # Kata atau frase yang paling sesuai
@@ -62,14 +78,29 @@ class OpenAIClass {
       // Compare answer Precision
       const result = completion.choices[0].message.content;
 
-      return JSON.parse(result);
+      return safeJsonParse(result);
     } catch (error) {
       console.error(error);
     }
   }
 }
 
-// OpenAIClass.createQuestion("film horor", 5).then(console.log);
-// OpenAIClass.compareAnswer(answerByUser, realAnswer).then(console.log);
+function safeJsonParse(jsonString) {
+  try {
+    // Replace non-JSON characters and fix common issues
+    jsonString = jsonString.replace(/[\n\r\t]/g, ""); // Remove newlines, carriage returns, and tabs
+    jsonString = jsonString.replace(/,(\s*[}\]])/g, "$1"); // Remove trailing commas
+    jsonString = jsonString.replace(
+      /(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g,
+      '"$2":'
+    ); // Ensure all keys are double-quoted
+
+    // Attempt to parse the JSON string
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error("Failed to parse JSON string:", error);
+    return null; // Return null or handle the error as needed
+  }
+}
 
 module.exports = OpenAIClass;

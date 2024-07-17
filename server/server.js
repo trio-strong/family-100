@@ -1,6 +1,8 @@
 const http = require("http");
 const { Server } = require("socket.io");
 const openAI = require("./openai");
+const Room = require("./models/room");
+const Question = require("./models/question");
 
 const httpServer = http.createServer();
 
@@ -13,70 +15,84 @@ const io = new Server(httpServer, {
   },
 });
 
-let rooms = [];
-const questions = [
-  {
-    id: 1,
-    question: "Apa yang biasanya dilakukan orang di pagi hari?",
-    answers: [
-      { answer: "Sarapan", score: 30, revealed: false },
-      { answer: "Mandi", score: 20, revealed: false },
-      { answer: "Olahraga", score: 15, revealed: false },
-      { answer: "Bekerja", score: 10, revealed: false },
-      { answer: "Tidur lagi", score: 5, revealed: false },
-    ],
-    category: "Pagi",
-  },
-  {
-    id: 2,
-    question: "Apa yang biasanya orang minum di pagi hari?",
-    answers: [
-      { answer: "Kopi", score: 30, revealed: false },
-      { answer: "Teh", score: 25, revealed: false },
-      { answer: "Air putih", score: 20, revealed: false },
-      { answer: "Jus buah", score: 15, revealed: false },
-      { answer: "Susu", score: 10, revealed: false },
-    ],
-    category: "Pagi",
-  },
-];
+// const questions = [
+//   {
+//     id: 1,
+//     question: "Apa yang biasanya dilakukan orang di pagi hari?",
+//     answers: [
+//       { answer: "Sarapan", score: 30, revealed: false },
+//       { answer: "Mandi", score: 20, revealed: false },
+//       { answer: "Olahraga", score: 15, revealed: false },
+//       { answer: "Bekerja", score: 10, revealed: false },
+//       { answer: "Tidur lagi", score: 5, revealed: false },
+//     ],
+//     category: "Pagi",
+//   },
+//   {
+//     id: 2,
+//     question: "Apa yang biasanya orang minum di pagi hari?",
+//     answers: [
+//       { answer: "Kopi", score: 30, revealed: false },
+//       { answer: "Teh", score: 25, revealed: false },
+//       { answer: "Air putih", score: 20, revealed: false },
+//       { answer: "Jus buah", score: 15, revealed: false },
+//       { answer: "Susu", score: 10, revealed: false },
+//     ],
+//     category: "Pagi",
+//   },
+// ];
 
 // openAI("sarapan pagi", 1).then(console.log);
 
-io.on("connection", (socket) => {
-  console.log("a user connected");
+let rooms;
 
+io.on("connection", async (socket) => {
+  const questions = await Question.readAll();
+  rooms = await Room.getAll();
+  console.log("a user connected");
+  socket.emit("connected");
   socket.emit("rooms", rooms);
 
-  socket.on("createRoom", ({ roomName, category, username }, callback) => {
-    const roomQuestions = questions.filter((q) => q.category === category);
-    const room = {
-      id: `${rooms.length + 1}`,
-      name: roomName,
-      scoreA: 0,
-      scoreB: 0,
-      tempScoreA: 0,
-      tempScoreB: 0,
-      questions: roomQuestions,
-      activeQuestion: null,
-      answeredTeams: {},
-      users: [username],
-      teamA: [],
-      teamB: [],
-      currentTurn: null,
-      currentTurnIndex: 0,
-      roomMaster: username,
-      currentTurnPlayer: null,
-      livesA: 3,
-      livesB: 3,
-    };
-    rooms.push(room);
-    io.emit("rooms", rooms);
-    callback(room);
-  });
+  socket.on(
+    "createRoom",
+    async ({ roomName, category, username }, callback) => {
+      // const roomQuestions = questions.filter((q) => q.category === category);
+      const roomQuestions = await openAI.createQuestion(category, 5);
 
-  socket.on("joinRoom", ({ roomId, username }, callback) => {
-    const room = rooms.find((r) => r.id === roomId);
+      console.log(roomQuestions, "di server socket");
+      const room = {
+        // id: `${rooms.length + 1}`,
+        name: roomName,
+        scoreA: 0,
+        scoreB: 0,
+        tempScoreA: 0,
+        tempScoreB: 0,
+        questions: roomQuestions,
+        activeQuestion: null,
+        answeredTeams: {},
+        users: [username],
+        teamA: [],
+        teamB: [],
+        currentTurn: null,
+        currentTurnIndex: 0,
+        roomMaster: username,
+        currentTurnPlayer: null,
+        livesA: 3,
+        livesB: 3,
+      };
+      // rooms.push(room);
+      await Room.create(room);
+      const updatedRooms = await Room.getAll();
+
+      // Emit an event to all connected clients with the new room
+      io.emit("rooms", updatedRooms);
+      callback(room);
+    }
+  );
+
+  socket.on("joinRoom", async ({ roomId, username }, callback) => {
+    console.log("masuk join room");
+    const room = await Room.readById(roomId);
     if (room) {
       if (!room.users.includes(username)) {
         room.users.push(username);
@@ -90,8 +106,9 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("leaveRoom", ({ roomId, username }, callback) => {
-    const room = rooms.find((r) => r.id === roomId);
+  socket.on("leaveRoom", async ({ roomId, username }, callback) => {
+    // const room = rooms.find((r) => r.id === roomId);
+    const room = await Room.readById(roomId);
     if (room) {
       room.users = room.users.filter((user) => user !== username);
       room.teamA = room.teamA.filter((user) => user !== username);
@@ -109,9 +126,12 @@ io.on("connection", (socket) => {
     io.emit("rooms", rooms);
   });
 
-  socket.on("chooseTeam", ({ roomId, team, username }) => {
-    const room = rooms.find((r) => r.id === roomId);
+  socket.on("chooseTeam", async ({ roomId, team, username }) => {
+    const room = rooms.find((r) => r._id.toString() === roomId);
+    // const room = await Room.readById(roomId);
+    // console.log(username);
     if (room) {
+      console.log(room);
       if (team === "A") {
         if (!room.teamA.includes(username)) {
           room.teamA.push(username);
@@ -123,28 +143,36 @@ io.on("connection", (socket) => {
           room.teamA = room.teamA.filter((user) => user !== username);
         }
       }
-      console.log(room);
+      // console.log(room);
       io.to(roomId).emit("roomData", { room });
     }
   });
 
-  socket.on("startGame", ({ roomId }) => {
-    const room = rooms.find((r) => r.id === roomId);
+  socket.on("startGame", async ({ roomId }) => {
+    const room = rooms.find((r) => r._id.toString() === roomId);
+    // const room = await Room.readById(roomId);
     if (room) {
       room.activeQuestion = room.questions.shift();
+      await Room.updateById(roomId, room);
       io.to(roomId).emit("startGame", { room });
     }
   });
 
   socket.on("answer", async ({ roomId, answer, team, username }, callback) => {
-    const room = rooms.find((r) => r.id === roomId);
+    const room = rooms.find((r) => r._id.toString() === roomId);
+    // const room = await Room.readById(roomId);
     if (room) {
       const activeQuestion = room.activeQuestion;
       // const answerObj = activeQuestion.answers.find(
       //   (a) => a.answer.toLowerCase() === answer.toLowerCase()
       // );
       const realAnswers = activeQuestion.answers.map((a) => a.answer);
-      const comparisonResult = await openAI.compareAnswer(answer, realAnswers);
+      console.log(realAnswers, "ini realAnswers");
+      const stringAnswers = realAnswers.join(", ");
+      const comparisonResult = await openAI.compareAnswer(
+        answer,
+        stringAnswers
+      );
       console.log(comparisonResult);
 
       if (comparisonResult.status && comparisonResult.percentage > 70) {
@@ -338,8 +366,10 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("nextRound", ({ roomId }) => {
-    const room = rooms.find((r) => r.id === roomId);
+  socket.on("nextRound", async ({ roomId }) => {
+    const room = rooms.find((r) => r._id.toString() === roomId);
+
+    // const room = await Room.readById(roomId);
     if (room) {
       if (room.questions.length > 0) {
         room.activeQuestion = room.questions.shift();
@@ -359,7 +389,8 @@ io.on("connection", (socket) => {
   socket.on(
     "battleAnswer",
     async ({ roomId, answer, team, username }, callback) => {
-      const room = rooms.find((r) => r.id === roomId);
+      const room = rooms.find((r) => r._id.toString() === roomId);
+      // const room = await Room.readById(roomId);
       if (room && room.currentTurn === null) {
         const activeQuestion = room.activeQuestion;
         // const answerObj = activeQuestion.answers.find(
@@ -377,6 +408,8 @@ io.on("connection", (socket) => {
         io.to(roomId).emit("roomData", { room });
 
         const realAnswers = activeQuestion.answers.map((a) => a.answer);
+        // const stringAnswers = realAnswers.join(", ");
+        // console.log(realAnswers, "ini realAnswers");
         const comparisonResult = await openAI.compareAnswer(
           answer,
           realAnswers
@@ -433,8 +466,9 @@ io.on("connection", (socket) => {
     }
   );
 
-  socket.on("gameOver", ({ roomId }) => {
-    const room = rooms.find((r) => r.id === roomId);
+  socket.on("gameOver", async ({ roomId }) => {
+    const room = rooms.find((r) => r._id.toString() === roomId);
+    // const room = await Room.readById(roomId);
     if (room) {
       io.to(roomId).emit("gameOver", { room });
     }

@@ -17,11 +17,20 @@ export default function Room({
   const [room, setRoom] = useState<any>(null);
   const [teamA, setTeamA] = useState([]);
   const [teamB, setTeamB] = useState([]);
+  const [isConnected, setIsConnected] = useState(false);
   const router = useRouter();
   const roomId = params.roomId;
 
   useEffect(() => {
-    socket = io(process.env.NEXT_PUBLIC_CLIENT_URL || "http://localhost:3001");
+    socket = io("http://localhost:3001");
+
+    socket.on("connected", () => {
+      setIsConnected(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    console.log(socket);
 
     socket.emit("joinRoom", {
       roomId,
@@ -29,6 +38,7 @@ export default function Room({
     });
 
     socket.on("roomData", (data: any) => {
+      console.log(data.room, "roomdata Useeffect");
       setRoom(data.room);
       setTeamA(data.room.teamA);
       setTeamB(data.room.teamB);
@@ -45,7 +55,8 @@ export default function Room({
     //   })
     //   socket.disconnect()
     // }
-  }, [roomId]);
+  }, [isConnected, roomId]);
+  // console.log(room);
 
   const chooseTeam = (team: any) => {
     const username = localStorage.getItem("username");

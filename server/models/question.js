@@ -1,6 +1,7 @@
-import { database } from "../config/mongodb";
+const { ObjectId } = require("mongodb");
+const database = require("../config/mongodb");
 
-export class Question {
+module.exports = class Question {
   // Read All Questions: Show all questions.
   // --> Use object .category for index the category
   static async readAll() {
@@ -15,9 +16,9 @@ export class Question {
   }
 
   // Read Question by Id
-  static async readById(id) {
+  static async readById(_id) {
     const collection = database.collection("questions");
-    const data = await collection.findOne({ _id: id });
+    const data = await collection.findOne({ _id: new ObjectId(String(_id)) });
     return data;
   }
 
@@ -36,4 +37,4 @@ export class Question {
     const data = await cursor.toArray();
     return data;
   }
-}
+};
