@@ -22,15 +22,27 @@ class OpenAIClass {
           {
             role: "system",
             content: `
-            Buat ${totalQuestion} pertanyaan seperti family 100 dengan kategori ${category}, dan buat menjadi format sebagai berikut:
-                [{id: serial,question: "",answers: [{answer: "",score: point,revealed: false}}]}]
+            Buat ${totalQuestion} pertanyaan seperti game family feud dimana ada pertanyaan dan beberapa survey (answers) dengan kategori ${category} dengan masing-masing minimal 3 sampai 7 jawaban, dan buat menjadi format json sebagai berikut:
+              [
+                {
+                  id: serial,question: "", 
+                  answers: [
+                    {answer: "",score: point, revealed:false}
+                    ]
+                }
+              ]
+              respon hanya dengan json saja
             `,
           },
         ],
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o",
       });
 
-      return completion.choices[0].message.content ?? "";
+      console.log(completion.choices[0].message.content);
+      console.log("\n\n\n");
+      const result = safeJsonParse(completion.choices[0].message.content);
+
+      return result;
     } catch (error) {
       console.error(error);
     }
@@ -41,7 +53,7 @@ class OpenAIClass {
     try {
       let stringAnswers = "";
       realAnswer.forEach((a, idx) => {
-        stringAnswers += `${idx + 1}. ${a}. `;
+        stringAnswers += `${idx + 1}. ${a} `;
       });
       const completion = await this.openai().chat.completions.create({
         messages: [
@@ -57,19 +69,39 @@ class OpenAIClass {
             "matched": "<kata atau frase terdekat>", # Kata atau frase yang paling sesuai
             "percentage": <nilai kemiripan dalam persentase> # Persentase kemiripan
             }
+            respon hanya dengan json saja
           `,
           },
         ],
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o",
       });
 
       // Compare answer Precision
       const result = completion.choices[0].message.content;
 
-      return JSON.parse(result);
+      return safeJsonParse(result);
     } catch (error) {
       console.error(error);
     }
+  }
+}
+
+function safeJsonParse(jsonString) {
+  try {
+    // Replace non-JSON characters and fix common issues
+    jsonString = jsonString.replace(/```json|```/g, "");
+    jsonString = jsonString.replace(/[\n\r\t]/g, ""); // Remove newlines, carriage returns, and tabs
+    jsonString = jsonString.replace(/,(\s*[}\]])/g, "$1"); // Remove trailing commas
+    jsonString = jsonString.replace(
+      /(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g,
+      '"$2":'
+    ); // Ensure all keys are double-quoted
+
+    // Attempt to parse the JSON string
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error("Failed to parse JSON string:", error);
+    return null; // Return null or handle the error as needed
   }
 }
 

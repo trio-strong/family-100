@@ -6,7 +6,7 @@ const httpServer = http.createServer();
 
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.NEXT_PUBLIC_CLIENT_URL || `http://localhost:3000`, // Replace with your frontend URL
+    origin: "*", // Replace with your frontend URL
     methods: ["GET", "POST"],
     allowedHeaders: ["my-custom-header"],
     credentials: true,
@@ -48,32 +48,36 @@ io.on("connection", (socket) => {
 
   socket.emit("rooms", rooms);
 
-  socket.on("createRoom", ({ roomName, category, username }, callback) => {
-    const roomQuestions = questions.filter((q) => q.category === category);
-    const room = {
-      id: `${rooms.length + 1}`,
-      name: roomName,
-      scoreA: 0,
-      scoreB: 0,
-      tempScoreA: 0,
-      tempScoreB: 0,
-      questions: roomQuestions,
-      activeQuestion: null,
-      answeredTeams: {},
-      users: [username],
-      teamA: [],
-      teamB: [],
-      currentTurn: null,
-      currentTurnIndex: 0,
-      roomMaster: username,
-      currentTurnPlayer: null,
-      livesA: 3,
-      livesB: 3,
-    };
-    rooms.push(room);
-    io.emit("rooms", rooms);
-    callback(room);
-  });
+  socket.on(
+    "createRoom",
+    async ({ roomName, category, username }, callback) => {
+      // const roomQuestions = questions.filter((q) => q.category === category);
+      const roomQuestions = await openAI.createQuestion(category, 3);
+      const room = {
+        id: `${rooms.length + 1}`,
+        name: roomName,
+        scoreA: 0,
+        scoreB: 0,
+        tempScoreA: 0,
+        tempScoreB: 0,
+        questions: roomQuestions,
+        activeQuestion: null,
+        answeredTeams: {},
+        users: [username],
+        teamA: [],
+        teamB: [],
+        currentTurn: null,
+        currentTurnIndex: 0,
+        roomMaster: username,
+        currentTurnPlayer: null,
+        livesA: 3,
+        livesB: 3,
+      };
+      rooms.push(room);
+      io.emit("rooms", rooms);
+      callback(room);
+    }
+  );
 
   socket.on("joinRoom", ({ roomId, username }, callback) => {
     const room = rooms.find((r) => r.id === roomId);
@@ -138,6 +142,12 @@ io.on("connection", (socket) => {
 
   socket.on("answer", async ({ roomId, answer, team, username }, callback) => {
     const room = rooms.find((r) => r.id === roomId);
+    io.to(roomId).emit("showCountdown", {
+      username,
+      answer,
+      correct: null,
+      score: null,
+    });
     if (room) {
       const activeQuestion = room.activeQuestion;
       // const answerObj = activeQuestion.answers.find(
@@ -153,7 +163,14 @@ io.on("connection", (socket) => {
             a.answer.toLowerCase() === comparisonResult.matched.toLowerCase()
         );
 
-        io.to(roomId).emit("userAnswer", { username, answer, correct: true });
+        setTimeout(() => {
+          io.to(roomId).emit("userAnswer", {
+            username,
+            answer,
+            correct: true,
+            score: answerObj.score,
+          });
+        }, 5000);
 
         if (answerObj && !answerObj.revealed) {
           answerObj.revealed = true;
@@ -177,11 +194,14 @@ io.on("connection", (socket) => {
               room.tempScoreB = 0;
               room.activeQuestion = room.questions.shift();
               room.currentTurn = null;
-              io.to(roomId).emit("roomData", { room });
+              setTimeout(() => {
+                io.to(roomId).emit("roomData", { room });
+              }, 10000);
             } else {
               // If there are no more questions, emit a "gameOver" event
-
-              io.to(roomId).emit("noMoreQuestions", { room });
+              setTimeout(() => {
+                io.to(roomId).emit("noMoreQuestions", { room });
+              }, 10000);
             }
 
             // io.to(roomId).emit("roomData", { room });
@@ -211,11 +231,14 @@ io.on("connection", (socket) => {
                 room.tempScoreB = 0;
                 room.currentTurn = null;
                 room.activeQuestion = room.questions.shift();
-                io.to(roomId).emit("roomData", { room });
+                setTimeout(() => {
+                  io.to(roomId).emit("roomData", { room });
+                }, 10000);
               } else {
                 // If there are no more questions, emit a "gameOver" event
-
-                io.to(roomId).emit("noMoreQuestions", { room });
+                setTimeout(() => {
+                  io.to(roomId).emit("noMoreQuestions", { room });
+                }, 10000);
               }
 
               // Reset the lives of the team that lost all their lives
@@ -238,7 +261,9 @@ io.on("connection", (socket) => {
                 }
                 room.currentTurnPlayer = room.teamB[room.currentTurnIndex];
               }
-              io.to(roomId).emit("roomData", { room });
+              setTimeout(() => {
+                io.to(roomId).emit("roomData", { room });
+              }, 5000);
             }
           }
 
@@ -251,7 +276,13 @@ io.on("connection", (socket) => {
           callback({ correct: false });
         }
 
-        io.to(roomId).emit("userAnswer", { username, answer, correct: false });
+        setTimeout(() => {
+          io.to(roomId).emit("userAnswer", {
+            username,
+            answer,
+            correct: false,
+          });
+        }, 5000);
 
         if (room.livesA === 0 || room.livesB === 0) {
           // Add the temporary score to the score
@@ -270,11 +301,14 @@ io.on("connection", (socket) => {
             room.tempScoreB = 0;
             room.currentTurn = null;
             room.activeQuestion = room.questions.shift();
-            io.to(roomId).emit("roomData", { room });
+            setTimeout(() => {
+              io.to(roomId).emit("roomData", { room });
+            }, 10000);
           } else {
             // If there are no more questions, emit a "gameOver" event
-
-            io.to(roomId).emit("noMoreQuestions", { room });
+            setTimeout(() => {
+              io.to(roomId).emit("noMoreQuestions", { room });
+            }, 10000);
           }
 
           return;
@@ -313,8 +347,9 @@ io.on("connection", (socket) => {
           // } else {
           //   room.livesB = 3;
           // }
-
-          io.to(roomId).emit("roomData", { room });
+          setTimeout(() => {
+            io.to(roomId).emit("roomData", { room });
+          }, 5000);
 
           // setTimeout(() => {
           //   io.to(roomId).emit("nextRound", { room });
@@ -332,7 +367,9 @@ io.on("connection", (socket) => {
             }
             room.currentTurnPlayer = room.teamB[room.currentTurnIndex];
           }
-          io.to(roomId).emit("roomData", { room });
+          setTimeout(() => {
+            io.to(roomId).emit("roomData", { room });
+          }, 5000);
         }
       }
     }
